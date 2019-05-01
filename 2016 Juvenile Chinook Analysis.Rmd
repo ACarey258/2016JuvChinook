@@ -13,6 +13,31 @@ rm(list=ls(all=TRUE))
 library(readxl)
 library(tidyverse)
 library(magrittr)
+library(forcats)
+```
+Load in 2016 Juvenile Chinook dataset
+```{r}
+#set data path
+paths = list("C:\\data\\GitHub\\2016JuvChinook\\2016JuvChin_ForR_5.1.19.xlsx",
+             "C:\\data\\GitHub\\2016JuvChinook\\Outfiles\\")
+
+#set outfile
+outfile = paths[[2]]
+
+#read in data
+JuvChin16 <- read_excel(paths[[1]],"2016JuvChin")
+
+#set factors
+JuvChin16$MajorityOrigin <- as.factor(JuvChin16$MajorityOrigin)
+JuvChin16$RiverSystem <- as.factor(JuvChin16$RiverSystem)
+JuvChin16$Habitat <- as.factor(JuvChin16$Habitat)
+
+#select only the majority origin of Hatchery or Wild
+ChinOrigin <- filter(JuvChin16, MajorityOrigin != "Hatchery/Wild")
+
+#select only the delta and freshwater (Lake WA) samples
+ChinHab <- filter(ChinOrigin, Habitat == "Delta" | Habitat == "Freshwater")
+
 ```
 
 
