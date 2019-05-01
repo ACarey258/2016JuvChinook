@@ -1,0 +1,18 @@
+---
+title: "2016 Juvenile Chinook"
+output: html_notebook
+---
+WDFW TBiOS 
+2016 Monitoring toxic contaminants in the juvenile Chinook salmon
+
+```{r}
+# First step, clear workspace to make sure every thing will work, rm means remove
+rm(list=ls(all=TRUE))
+
+# load required packages/libraries
+library(readxl)
+library(tidyverse)
+library(magrittr)
+```
+
+
