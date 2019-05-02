@@ -14,6 +14,9 @@ library(readxl)
 library(tidyverse)
 library(magrittr)
 library(forcats)
+library(RColorBrewer)
+library(stringr)
+library(Rmisc)
 ```
 Load in 2016 Juvenile Chinook dataset
 ```{r}
@@ -32,12 +35,97 @@ JuvChin16$MajorityOrigin <- as.factor(JuvChin16$MajorityOrigin)
 JuvChin16$RiverSystem <- as.factor(JuvChin16$RiverSystem)
 JuvChin16$Habitat <- as.factor(JuvChin16$Habitat)
 
+#spelling error - change Stilliguamish to Stillaguamish
+JuvChin16$RiverSystem <- gsub("Stilliguamish", "Stillaguamish", JuvChin16$RiverSystem)
+
 #select only the majority origin of Hatchery or Wild
 ChinOrigin <- filter(JuvChin16, MajorityOrigin != "Hatchery/Wild")
 
 #select only the delta and freshwater (Lake WA) samples
 ChinHab <- filter(ChinOrigin, Habitat == "Delta" | Habitat == "Freshwater")
 
+#creat a dataframe with just the data needed for analysis
+SumPOPs <- as.data.frame(ChinHab[c(1,3,5,8:9,13,74,81,93:95,98:99)])
+
+byDelta <- group_by(SumPOPs, RiverSystem, Habitat) #groups data by River System and Habitat 
+(summarise(byDelta, AvgTPCBs = mean(TotalPCBs, na.rm = TRUE))) #calculates the mean TPCBs by River and Habitat
+```
+Using group_by and summarise with a pipe
+```{r}
+sumPCBs <- SumPOPs %>%
+  group_by(RiverSystem, Habitat) %>%
+  summarise(
+    count = n(),
+    MnTPCBs = mean(TotalPCBs, na.rm = TRUE), #na.rm = TRUE removes NAs/missing values prior to calculation
+    StdDevPCBs = sd(TotalPCBs, na.rm = TRUE)
+  )
+
+sumPCBs
+```
+Create a bar graph using the sumPCBs dataframe that was just calculated
+
+```{r}
+sumPCBs$RiverSystem <- factor(sumPCBs$RiverSystem, levels = c("Nooksack", "Skagit", "Stillaguamish", "Snohomish",
+                                                              "Lk Washington","Duwamish", "Puyallup","Nisqually",
+                                                              "Skokomish", "Duckabush", "Dungeness","Elwha"))
+
+ggplot(data = sumPCBs, mapping = aes(x = RiverSystem, y = MnTPCBs, fill = RiverSystem)) +
+  geom_bar(colour = "black", stat = "identity") +
+  guides(fill = FALSE) +
+  labs(title = "Mean TPCBs (ng/g ww) measured in juvenile Chinook salmon",
+       x = "River System",
+       y = "Mean TPCBs (ng/g ww)") +
+  theme(axis.text.x = element_text(angle = 45, vjust = 0.5)) +
+  theme(panel.grid.minor = element_blank(),
+        panel.grid.major = element_blank())
+
+
+  
 ```
 
+To add error bars - Calculate standard error and 95% CI using summarySE()
+
+```{r}
+(MoreSums <-summarySE(SumPOPs, measurevar = "TotalPCBs", groupvars = c("RiverSystem", "Habitat"))) 
+#Some NaNs produced because Nooksack only has one delta sample
+
+MoreSums$RiverSystem <- factor(MoreSums$RiverSystem, levels = c("Nooksack", "Skagit", "Stillaguamish", "Snohomish",
+                                                              "Lk Washington","Duwamish", "Puyallup","Nisqually",
+                                                              "Skokomish", "Duckabush", "Dungeness","Elwha"))
+
+```
+Creat bar graph with 95% CI error bars
+```{r}
+ggplot(MoreSums, mapping = aes(x = RiverSystem, y = TotalPCBs, fill = RiverSystem)) +
+  geom_bar(position = position_dodge(), colour = "black", stat = "identity") + #Stat=identity uses values from a dataframe
+  guides(fill = FALSE) + #removes legend
+  geom_errorbar(aes(ymin = TotalPCBs - ci, ymax = TotalPCBs + ci),
+               width = 0.2, #width of error bars
+               position = position_dodge(0.9)) +
+    labs(title = "Mean TPCBs (ng/g ww) +/- 95% CI measured in juvenile Chinook salmon",
+       x = "River System",
+       y = "Mean TPCBs (ng/g ww)") +
+  theme(axis.text.x = element_text(angle = 45, vjust = 0.5)) +
+  theme(panel.grid.minor = element_blank(),
+        panel.grid.major = element_blank())
+```
+
+
+
+
+Create box plots of PCBs by RiverSystem and Delta
+```{r}
+byDelta$RiverSystem <- factor(byDelta$RiverSystem, levels = c("Elwha", "Dungeness", "Duckabush","Skokomish",
+                                                              "Nisqually", "Puyallup", "Duwamish", "Lk Washington",
+                                                              "Snohomish", "Stillaguamish", "Skagit","Nooksack"))
+
+ggplot(data = byDelta, mapping = aes(x = RiverSystem, y = TotalPCBs, fill = RiverSystem)) +
+  geom_boxplot() +
+  coord_flip() + #creates a horizontal box plot
+  labs(title = "TPCBs measured in whole body (less guts) juvenile Chinook salmon",
+       x = "River System",
+       y = "Total PCBs (ng/g wet weight in whole body)") +
+  theme_bw() +
+  theme(legend.position = "none") #removes the legend
+```
 
