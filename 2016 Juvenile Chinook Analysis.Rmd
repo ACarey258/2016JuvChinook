@@ -18,6 +18,16 @@ library(RColorBrewer)
 library(stringr)
 library(Rmisc)
 ```
+R for Data Science - Chapter 7, Exploratory Data Analysis (EDA)
+
+Two types of questions to ask about your data to help guide your research:
+1. What type of variation occurs within my varaibles?
+2. What type of covariation occurs between my variables?
+
+VARIATION is he tendency of the values of a variable to change from measurement to measurement. Every variable has its own pattern of variation, which can reveal interesting information. The best way to understand that pattern is to visualize the distribution of the variable's values.
+
+Bar charts are best to examine the distribution (i.e., counts) of categorical variables.
+
 Load in 2016 Juvenile Chinook dataset
 ```{r}
 #set data path
@@ -62,8 +72,48 @@ sumPCBs <- SumPOPs %>%
 
 sumPCBs
 ```
-Create a bar graph using the sumPCBs dataframe that was just calculated
 
+The KEY to asking good follow-up questions after visualizing your data is to rely on your curiosity as well as skepticism:
+1. What do you want to learn more about?
+2. How could this be misleading?
+
+Looking at both the bar chart and the box plot, you can see that PCBs in juvenile Chinook salmon are highest in fish migrating through the urbanized areas of the Green/Duwamish, Puyallup, Lake Washington and Snohomish.  The concentrations of PCBs decrease with increased distance from the urban areas of Puget Sound.
+
+Based on past work, this is not surprising and it has met our expectations.
+
+COVARIATION
+Covariation describes the behavior between variables.  It is the tendency for the values of two or more variables to vary together in a related way.
+
+The best way to spot covariation is to visualize the relationship between two or more variables.  How you do that should depend on the type of variables involved.
+
+One method to do this is to produce a box plot - a visual shorthad for a distribution of values that is popular among statisticians.
+  - the Box stretches from the 25th percentile of the distribution to the 75th percentile (the interquartile range; IQR)
+  - In the middle of the box is the median line (50th percentile of the distribution)
+  - points that fall more than 1.5x the IQR are plotted separately
+  - A line/whisker extends from each side of the box and goes to the farthest non-outlier point in the distibution 
+  (see Section 7.5.1 for a depiction of the box plot with labels)
+
+Create box plots of PCBs by RiverSystem and Delta
+```{r}
+#set factors in the order you want them displayed in the figure (bottom to top for a horizontal box plot)
+byDelta$RiverSystem <- factor(byDelta$RiverSystem, levels = c("Elwha", "Dungeness", "Duckabush","Skokomish",
+                                                              "Nisqually", "Puyallup", "Duwamish", "Lk Washington",
+                                                              "Snohomish", "Stillaguamish", "Skagit","Nooksack"))
+
+ggplot(data = byDelta, mapping = aes(x = RiverSystem, y = TotalPCBs, fill = RiverSystem)) +
+  geom_boxplot() +
+  coord_flip() + #creates a horizontal box plot
+  labs(title = "TPCBs measured in whole body (less guts) juvenile Chinook salmon",
+       x = "River System",
+       y = "Total PCBs (ng/g wet weight in whole body)") +
+  theme_bw() +
+  theme(legend.position = "none") #removes the legend
+```
+
+
+
+
+Create a bar graph using the sumPCBs dataframe that was just calculated
 ```{r}
 sumPCBs$RiverSystem <- factor(sumPCBs$RiverSystem, levels = c("Nooksack", "Skagit", "Stillaguamish", "Snohomish",
                                                               "Lk Washington","Duwamish", "Puyallup","Nisqually",
@@ -78,23 +128,20 @@ ggplot(data = sumPCBs, mapping = aes(x = RiverSystem, y = MnTPCBs, fill = RiverS
   theme(axis.text.x = element_text(angle = 45, vjust = 0.5)) +
   theme(panel.grid.minor = element_blank(),
         panel.grid.major = element_blank())
-
-
-  
 ```
 
 To add error bars - Calculate standard error and 95% CI using summarySE()
-
 ```{r}
 (MoreSums <-summarySE(SumPOPs, measurevar = "TotalPCBs", groupvars = c("RiverSystem", "Habitat"))) 
 #Some NaNs produced because Nooksack only has one delta sample
 
+#set factors in the order you want them displayed in the bar chart from left to right
 MoreSums$RiverSystem <- factor(MoreSums$RiverSystem, levels = c("Nooksack", "Skagit", "Stillaguamish", "Snohomish",
                                                               "Lk Washington","Duwamish", "Puyallup","Nisqually",
                                                               "Skokomish", "Duckabush", "Dungeness","Elwha"))
-
 ```
-Creat bar graph with 95% CI error bars
+
+Create a bar graph with 95% CI error bars
 ```{r}
 ggplot(MoreSums, mapping = aes(x = RiverSystem, y = TotalPCBs, fill = RiverSystem)) +
   geom_bar(position = position_dodge(), colour = "black", stat = "identity") + #Stat=identity uses values from a dataframe
@@ -105,27 +152,16 @@ ggplot(MoreSums, mapping = aes(x = RiverSystem, y = TotalPCBs, fill = RiverSyste
     labs(title = "Mean TPCBs (ng/g ww) +/- 95% CI measured in juvenile Chinook salmon",
        x = "River System",
        y = "Mean TPCBs (ng/g ww)") +
+  theme_bw() +
   theme(axis.text.x = element_text(angle = 45, vjust = 0.5)) +
   theme(panel.grid.minor = element_blank(),
         panel.grid.major = element_blank())
 ```
+The error message "Removed 1 rows containing missing values (geom_errorbar)" refers to the 1 nooksack sample which error bars were unable to be calculated for.
 
 
 
-
-Create box plots of PCBs by RiverSystem and Delta
-```{r}
-byDelta$RiverSystem <- factor(byDelta$RiverSystem, levels = c("Elwha", "Dungeness", "Duckabush","Skokomish",
-                                                              "Nisqually", "Puyallup", "Duwamish", "Lk Washington",
-                                                              "Snohomish", "Stillaguamish", "Skagit","Nooksack"))
-
-ggplot(data = byDelta, mapping = aes(x = RiverSystem, y = TotalPCBs, fill = RiverSystem)) +
-  geom_boxplot() +
-  coord_flip() + #creates a horizontal box plot
-  labs(title = "TPCBs measured in whole body (less guts) juvenile Chinook salmon",
-       x = "River System",
-       y = "Total PCBs (ng/g wet weight in whole body)") +
-  theme_bw() +
-  theme(legend.position = "none") #removes the legend
 ```
+
+
 
