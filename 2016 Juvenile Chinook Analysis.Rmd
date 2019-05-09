@@ -18,6 +18,7 @@ library(RColorBrewer)
 library(stringr)
 library(Rmisc)
 library(modelr)
+library(readr)
 ```
 R for Data Science - Chapter 7, Exploratory Data Analysis (EDA)
 
@@ -152,6 +153,7 @@ To add error bars - Calculate standard error and 95% CI using summarySE()
 MoreSums$RiverSystem <- factor(MoreSums$RiverSystem, levels = c("Nooksack", "Skagit", "Stillaguamish", "Snohomish",
                                                               "Lk Washington","Duwamish", "Puyallup","Nisqually",
                                                               "Skokomish", "Duckabush", "Dungeness","Elwha"))
+write_csv(MoreSums, "TPCBsSumStats.csv")
 ```
 
 Create a bar graph with 95% CI error bars
@@ -169,8 +171,8 @@ ggplot(MoreSums, mapping = aes(x = RiverSystem, y = TotalPCBs, fill = RiverSyste
   theme(axis.text.x = element_text(angle = 45, vjust = 0.5)) +
   theme(panel.grid.minor = element_blank(),
         panel.grid.major = element_blank()) +
-  scale_y_continuous(expand = c(0,0)) + #removes the floating bar effect above the x-axis
-  ylim(0,70)
+  scale_y_continuous(expand = c(0,0), limits = c(0,70)) # expand removes the floating bar effect above the x-axis
+ggsave("TPCBsByRiver.png")
 
 ```
 The error message "Removed 1 rows containing missing values (geom_errorbar)" refers to the 1 nooksack sample which error bars were unable to be calculated for.
@@ -217,9 +219,83 @@ SumPOPs2 <- SumPOPs %>%
 
 ggplot(data = SumPOPs2) +
   geom_point(mapping = aes(x = TotalPCBs, y = resid)) #not sure if I should be graphing TotalPCBs here
-```
+ggsave("TotalPCBsResid.pdf")
 
 ```
 
+TIBBLES
+
+Coerce a dataframe (byDelta = data for all the juvenile Chinook collected in the deltas and Lake WA in 2016) to a tibble.
+```{r}
+as_tibble(byDelta)
+```
+
+Tibbles NEVER change the type of the inputs (e.g., it never converts strings to factors!), it NEVER changes the names of variables, and it NEVER creates row names.
+
+There are two main differences in the usage of a tibble vs. a classic data.frame: printing and subsetting.
+
+PRINTING A TIBBLE
+
+Tibbles only show a portion of your data so your console doesn't get overwhelmed with large datasets. You can control the displayed number of rows and columns by using print().
+
+```{r}
+byDelta %>%
+  print(n = 15, width = Inf) #Inf shows all columns
+  
+```
+  
+```{r}
+byDelta %>%
+  view() #opens the tibble in a scrollable view of the complete dataset
+```
+  
+SUBSETTING
+
+If you want to pull out a single variable, you'll need to use the following "tools"
+$ - extracts by name
+[[ - extracts by name or position
+
+Extract by Name
+```{r}
+byDelta$TotalPCBs
+```
+```{r}
+byDelta[["TotalPCBs"]]
+```
+Extract by position
+```{r}
+byDelta[[1]] #1 refers to the column number
+```
+
+When using these tools in a pipe, you need to use the special placeholder .
+```{r}
+byDelta %>% .$TotalPCBs
+```
+Or
+```{r}
+byDelta %>% .[["TotalPCBs"]]
+```
+
+NOTE - some older functions don't work with tibbles so use as.data.frame() to turn a tibble back to a data.frame.
+(older functions don't work with [ )
+
+DATA IMPORT
+```{r}
+JuvChin <- read_csv("C:\\data\\GitHub\\2016JuvChinook\\2016JuvChin_ForR_5.1.19.csv")
+
+# prints out a column specification that gives the name and type of each column - important for parsing a file
+```
+
+PARSING A VECTOR
+
+These functions take a character vector and return a more specialized vector like a logical, integer or date
+SECTION 11.4
 
 
+```{r}
+JuvChin
+
+```
+
+
+  
