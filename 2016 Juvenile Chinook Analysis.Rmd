@@ -297,5 +297,89 @@ JuvChin
 
 ```
 
+The parse_*() functions are uniform: the first argument is a character vector to parse and the na argument specifies which strings should be treated as missing.
 
-  
+```{r}
+parse_integer(c("1", "231", ".", "456"), na = ".")
+```
+
+If parsing fails you WILL get a warning.
+
+```{r}
+x <- parse_integer(c("123", "345", "abc", "123.45"))
+```
+
+If there are many parsing failures, you'll need to use problems() to get the complete set.  This returns a tibble which you can then manipulate with dplyr.
+
+```{r}
+problems(x)
+```
+
+Using parsers is mostly a matter of understanding what's available and how they deal with different types of input. There are eight particularly important parsers:
+1. parse_logical() and parse_integer() - parse logicals and integers
+2. parse_double() is a strict numeric parser and parse_number() is a flexible numeric parser. These are more difficult than you might expect because different parts of the world write numbers in different ways.
+3. parse_character() - character encodings is important to remember for complications
+4. parse_factor() - creates factors
+5. parse_datetime(), parse_date(), parse_time() allow you to parse various date and time specifications. These are the most complicated because there are so many ways to write dates.
+
+11.3.1 Numbers
+
+Numbers can be tricky:
+1. People write numbers differently in different parts of the world.
+2. Numbers are often surounded by other characters that provide some context, like "$1000" or "10%".
+3. Numbers often contain "grouping" characters to make them easy to read, like "1,000,000" and these grouping characters vary around the world.
+
+When parsing numbers, the most important option is the character you use for the decimal mark. You can override the default value of "." by creating a new locale and setting the decimal_mark argument.
+```{r}
+parse_double("1.23")
+```
+
+```{r}
+parse_double("1,23", locale = locale(decimal_mark = ","))
+```
+
+parse_number() addresses the second problem: it ignores non-numeric characters before and after the number.
+
+```{r}
+parse_number("<100") #helpful for non-detects
+```
+```{r}
+parse_number("1.21%") #helpful for lipid percentages
+```
+The final problem is addressed by the combination of the parse_number() and the locale as parse_numer() will ignore the "grouping mark"
+```{r}
+# Used in America
+parse_number("$123,456,789")
+#> [1] 1.23e+08
+
+# Used in many parts of Europe
+parse_number("123.456.789", locale = locale(grouping_mark = "."))
+#> [1] 1.23e+08
+
+# Used in Switzerland
+parse_number("123'456'789", locale = locale(grouping_mark = "'"))
+#> [1] 1.23e+08
+```
+
+11.3.2 Factors
+
+R uses factors to represent categorical variables that have a known set of possible values. Give parse_factor() a vector of known levels to generate a warning whenever an unexpected value is present.
+```{r}
+fruit <- c("apple", "banana")
+parse_factor(c("apple", "banana", "bananana"), levels = fruit)
+
+```
+
+11.3.4 Dates, dates-times, and times
+
+Three different parsers associated with dates and times:
+1. date = the number of days since 1970-01-01
+2. date-time = the number of seconds since midnight 1970-01-01
+3. time = the number of seconds since midnight
+
+parse_datetime() expects an ISO8601 date-time.  
+ISO8601 is an international standard in which the componenets of a date are organized from biggest to smallest: year, month, day, hour, minute, second
+```{r}
+parse_datetime("2010-10-01T2010") #if time is omitted, it will be set to midnight
+```
+
