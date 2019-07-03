@@ -127,7 +127,7 @@ ggplot(data = byDelta, mapping = aes(x = RiverSystem, y = TotalPCBs, fill = Rive
   theme(legend.position = "none") #removes the legend
 ```
 
-Create a bar graph using the sumPCBs dataframe that was just calculated
+Create a bar graph using the sumPCBs dataframe that was just calculated - DOESN'T WORK
 ```{r}
 sumPCBs$RiverSystem <- factor(sumPCBs$RiverSystem, levels = c("Nooksack", "Skagit", "Stillaguamish", "Snohomish",
                                                               "Lk Washington","Duwamish", "Puyallup","Nisqually",

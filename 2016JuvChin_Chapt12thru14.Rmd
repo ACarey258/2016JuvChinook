@@ -1,0 +1,79 @@
+---
+title: "2016 Juvenile Chinook - R practice, Chpt 12-14 R for Data Science"
+output: html_notebook
+---
+Load in data
+```{r}
+# First step, clear workspace to make sure every thing will work, rm means remove
+rm(list=ls(all=TRUE))
+
+# load required packages/libraries
+library(readxl)
+library(tidyverse)
+library(magrittr)
+library(forcats)
+library(RColorBrewer)
+library(stringr)
+library(Rmisc)
+library(modelr)
+library(readr)
+
+#set paths
+paths = list("C:\\data\\GitHub\\2016JuvChinook\\2016JuvChin_ForR_5.1.19.csv",
+             "C:\\data\\GitHub\\2016JuvChinook\\Outfiles\\")
+
+#set outfile
+outfile = paths[[2]]
+
+#read in data
+JuvChin <- read_csv(paths[[1]], na = "") #csv's can only have one sheet so don't have to specify the sheet name
+# na = "" adds an NA to any blank cells
+```
+
+Create a more manageable dataframe then convert to a tibble
+```{r}
+#TIDYING
+#fix a spelling error
+JuvChin$RiverSystem <- gsub("Stilliguamish", "Stillaguamish", JuvChin$RiverSystem)
+
+#create a new dataframe and select only the majority origin of Hatchery or Wild
+ChinOrigin <- filter(JuvChin, MajorityOrigin != "Hatchery/Wild")
+
+#create a new dataframe and select only the delta and freshwater (Lake WA) samples
+ChinHab <- filter(ChinOrigin, Habitat == "Delta" | Habitat == "Freshwater")
+
+#creat a dataframe with just the data needed for analysis
+SumPOPs <- as.data.frame(ChinHab[c(1,3,5,8:9,13:14,74,81,93:95,98:99)])
+SumPOPs <- as.data.frame(SumPOPs[c(1:3,6,4:5,7:14)]) #change the order of columns in the dataframe
+colnames(SumPOPs)
+
+#convert dataframe to a tibble
+as_tibble(SumPOPs)
+
+```
+
+Add a column of data - TPCBs body burden (POP/weight) to the end of the tibble
+```{r}
+SumPOPs %>%
+  mutate(TPCBs_bb = TotalPCBs * MCL_mm)
+
+```
+
+TIDYING DATA
+Using gather() to convert a "fat" dataframe to a "skinny" dataframe
+```{r}
+colnames(SumPOPs)
+ThreePOPs <- as.data.frame(SumPOPs[c(1:4,8,9,11)])
+as_tibble(ThreePOPs)
+
+
+Skinny3 <- ThreePOPs %>%
+  gather('TotalPCBs', 'SumDDTs', 'SumBDE', key = "Analyte", value = "concentrations")
+```
+
+Using spread() to convert from skinny back to fat format
+```{r}
+Skinny3 %>%
+  spread(key = Analyte, value = concentrations)
+```
+
